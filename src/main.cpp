@@ -208,7 +208,11 @@ int main()
     for (const std::string &error : bank.errors)
         sys::log("[HUI] sound rejected %s", error.c_str());
 
-    app::Shell shell(fonts, catalog, kDataRoot, renderer.glass_texture());
+    app::Shell shell(
+        fonts, catalog, kDataRoot, renderer.glass_texture(),
+        [&renderer](int width, int height, const std::uint8_t *rgba)
+        { return renderer.batch().create_texture(width, height, rgba); },
+        [&renderer](std::uint32_t texture) { renderer.batch().destroy_texture(texture); });
     const std::string version = read_content_version("/app0/sce_sys/param.json");
     shell.set_version(version);
     sys::log("[HUI] version %s designs=%zu", version.empty() ? "unknown" : version.c_str(),
@@ -396,6 +400,7 @@ int main()
             {
                 sys::log("[HUI] closing: %s",
                          quit_requested ? "quit requested" : "tour evidence window over");
+                shell.shutdown();
                 pad.close();
                 sys::quit();
             }

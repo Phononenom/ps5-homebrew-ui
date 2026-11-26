@@ -31,6 +31,24 @@ GPL-3.0-or-later. It is built on `ps5-native-app-boilerplate`; the notices
 below cover the boilerplate's dependencies and every third-party component the
 project adds.
 
+## Garlic SaveMgr
+
+`strings/payloads/garlic-savemgr.elf` is an unmodified build of
+[earthonion/garlic-savemgr](https://git.etawen.dev/earthonion/garlic-savemgr),
+source revision `7d0dc57cf5fb5b72a31059414f0dea3ae6866b9d`, by earthonion.
+The upstream source tree does not contain a separate license file. Its SHA-256
+is `15e4a9099e0e9b1d68644aa0ed25614bca891bad90266d643af34fcfe56cb714`.
+The payload runs as Garlic's service; the native companion talks to its REST
+API. Garlic's own dependencies and notices are in its source tree.
+
+## Application branding
+
+The launcher icon and in-app logo use the supplied
+[Garlic Saves favicon](https://garlicsaves.com/static/favicon.svg), preserved in
+`assets/branding/favicon.svg` and rendered with alpha to
+`assets/branding/garlic-logo.png` and `sce_sys/icon0.png`. It is distinct from
+per-save artwork fetched from Garlic's `/api/icon` endpoint.
+
 ## Fonts and font baking
 
 | Typeface | Files | Copyright | Licence |
@@ -66,6 +84,15 @@ Music is decoded by [stb_vorbis](https://github.com/nothings/stb) (public
 domain or MIT; see `src/third_party/stb/LICENSE`), vendored at the commit in
 `src/third_party/stb/UPSTREAM` by `tools/update-stb.sh`. It is linked into the
 PS5 application.
+
+## Image decoding
+
+Mounted-save PNG artwork is decoded by
+[stb_image](https://github.com/nothings/stb) (public domain or MIT; see
+`src/third_party/stb/LICENSE`), vendored at the commit in
+`src/third_party/stb/UPSTREAM` by `tools/update-stb.sh`. The header is in
+`third_party/stb/stb_image.h`; `src/third_party/stb/image.c` provides its single
+PNG-only implementation, linked into the PS5 application.
 
 ## Shader distance functions
 

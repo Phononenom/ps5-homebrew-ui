@@ -5,6 +5,7 @@
 #
 # Exercises identity initialization and deployment resolution without a console.
 
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -295,6 +297,39 @@ class ToolTests(unittest.TestCase):
             source,
         )
         self.assertNotIn("const std::uint64_t relro_file = got.file_offset", source)
+
+
+class ConsoleFtpTests(unittest.TestCase):
+    def connect(self, responses):
+        spec = importlib.util.spec_from_file_location(
+            "console_tour", ROOT / "tools/console-tour.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        ftp = mock.Mock()
+        ftp.sendcmd.side_effect = responses
+        with mock.patch.object(module, "FTP", return_value=ftp):
+            console = module.Console("192.0.2.1", 2121)
+        self.addCleanup(console.close)
+        return ftp
+
+    def test_connection_disables_advertised_self_decryption(self):
+        ftp = self.connect(
+            ["211-Features:\n MLSD\n SELF\n211 End", "226 SELF transfer mode disabled"]
+        )
+        self.assertEqual(
+            ftp.sendcmd.call_args_list, [mock.call("FEAT"), mock.call("SELF")]
+        )
+
+    def test_connection_does_not_send_unknown_self_command(self):
+        ftp = self.connect(["211-Features:\n MLSD\n211 End"])
+        ftp.sendcmd.assert_called_once_with("FEAT")
+
+    def test_connection_refuses_decryption_that_remains_enabled(self):
+        with self.assertRaisesRegex(RuntimeError, "SELF decryption was not disabled"):
+            self.connect(
+                ["211-Features:\n MLSD\n SELF\n211 End", "226 SELF transfer mode enabled"]
+            )
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# ps5-homebrew-ui - Vendors stb_vorbis (public domain / MIT) at a pinned commit.
+# ps5-homebrew-ui - Vendors stb_vorbis and stb_image at a pinned commit.
 # Copyright (C) 2026 BlackBearReloaded
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# The file is stored as stb_vorbis.inc so the PS5 build, which compiles every
-# .c under src/, only compiles it once through src/third_party/stb/vorbis.c.
+# stb_vorbis.inc is compiled once through src/third_party/stb/vorbis.c.
+# stb_image.h is compiled once through src/third_party/stb/image.c.
 
 set -euo pipefail
 
@@ -20,6 +20,7 @@ resolved=$(git -C "$work/stb" rev-parse HEAD)
 destination="$root/src/third_party/stb"
 mkdir -p "$destination"
 cp "$work/stb/stb_vorbis.c" "$destination/stb_vorbis.inc"
+cp "$work/stb/stb_image.h" "$root/third_party/stb/stb_image.h"
 cp "$work/stb/LICENSE" "$destination/LICENSE"
 echo "$resolved" > "$destination/UPSTREAM"
-echo "stb_vorbis vendored at $resolved"
+echo "stb_vorbis and stb_image vendored at $resolved"

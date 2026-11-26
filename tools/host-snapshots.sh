@@ -35,7 +35,8 @@ for source in "${sources[@]}"; do
     else
         ninja_inputs=("$source" "$cxx")
         ninja_edge CXX "$object" "${compiler_cache[@]}" "$cxx" -std=c++20 -O2 -Wall -Wextra \
-            -DGL_GLEXT_PROTOTYPES=1 -I"$root/src" -I"$root/host" -MD -MF "$object.d" -c "$source" -o "$object"
+            -DGL_GLEXT_PROTOTYPES=1 "-DHUI_SOURCE_DIR=\"$root\"" -I"$root/src" -I"$root/host" \
+            -MD -MF "$object.d" -c "$source" -o "$object"
     fi
     objects+=("$object")
 done

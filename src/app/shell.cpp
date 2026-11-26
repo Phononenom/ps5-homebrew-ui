@@ -46,9 +46,17 @@ Settings Shell::load_settings(const std::string &data_root)
 }
 
 Shell::Shell(const ui::Fonts &fonts, const demo::Catalog &catalog, std::string data_root,
-             std::uint32_t glass_texture)
+             std::uint32_t glass_texture, TextureFactory texture_factory,
+             TextureDestructor texture_destructor)
     : fonts_(fonts), data_root_(std::move(data_root)), settings_(load_settings(data_root_)),
-      context_{fonts_, catalog, telemetry_, settings_}, glass_texture_(glass_texture)
+      context_{fonts_,
+               catalog,
+               telemetry_,
+               settings_,
+               false,
+               std::move(texture_factory),
+               std::move(texture_destructor)},
+      glass_texture_(glass_texture)
 {
     for (ConceptFactory factory : concept_registry())
         concepts_.push_back(factory(context_));
@@ -69,6 +77,12 @@ audio::SoundSet Shell::sound_set() const
 gfx::Color Shell::accent() const
 {
     return concepts_.empty() ? Color::rgb(0xffffff) : concepts_[current_]->info().accent;
+}
+
+void Shell::shutdown()
+{
+    for (const std::unique_ptr<Concept> &design : concepts_)
+        design->shutdown();
 }
 
 bool Shell::take_settings_changed()
@@ -123,7 +137,7 @@ void Shell::update(const InputFrame &input, float dt)
     }
 
     const int count = static_cast<int>(concepts_.size());
-    if (input.is_pressed(Action::page_next) || input.is_pressed(Action::page_prev))
+    if (count > 1 && (input.is_pressed(Action::page_next) || input.is_pressed(Action::page_prev)))
     {
         direction_ = input.is_pressed(Action::page_next) ? 1 : -1;
         show(static_cast<std::size_t>((static_cast<int>(current_) + direction_ + count) % count),
@@ -144,9 +158,18 @@ void Shell::update(const InputFrame &input, float dt)
     // The active design sees everything the shell does not use; nothing at
     // all while the info panel covers it.
     InputFrame forwarded = input;
-    forwarded.pressed &= ~kShellActions;
-    forwarded.released &= ~kShellActions;
-    forwarded.held &= ~kShellActions;
+    if (count > 1)
+    {
+        forwarded.pressed &= ~kShellActions;
+        forwarded.released &= ~kShellActions;
+        forwarded.held &= ~kShellActions;
+    }
+    else
+    {
+        forwarded.pressed &= ~action_bit(Action::touch);
+        forwarded.released &= ~action_bit(Action::touch);
+        forwarded.held &= ~action_bit(Action::touch);
+    }
     if (info_open_)
     {
         forwarded = InputFrame{};

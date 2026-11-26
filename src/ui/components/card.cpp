@@ -57,29 +57,6 @@ float image_radius(const Theme &theme, const Rect &image, float radius)
     return std::min(radius, limit);
 }
 
-// The part of `uv` that fills a rectangle of another shape without
-// stretching: the middle of the picture, cropped ("cover" fit).
-Rect cover_uv(const Rect &uv, float image_aspect, const Rect &target)
-{
-    if (target.h <= 0.0f || image_aspect <= 0.0f)
-        return uv;
-    const float wanted = target.w / target.h;
-    Rect out = uv;
-    if (wanted > image_aspect)
-    {
-        const float keep = image_aspect / wanted;
-        out.y = uv.y + uv.h * (1.0f - keep) * 0.5f;
-        out.h = uv.h * keep;
-    }
-    else
-    {
-        const float keep = wanted / image_aspect;
-        out.x = uv.x + uv.w * (1.0f - keep) * 0.5f;
-        out.w = uv.w * keep;
-    }
-    return out;
-}
-
 float chip_radius(const Theme &theme, const Rect &r)
 {
     return theme.pill_chips ? r.h * 0.5f : std::min(theme.radius, r.h * 0.5f);
@@ -103,6 +80,27 @@ float text_x(gfx::Align align, const Rect &r, float inset)
 }
 
 } // namespace
+
+Rect cover_uv(const Rect &uv, float image_aspect, const Rect &target)
+{
+    if (target.h <= 0.0f || image_aspect <= 0.0f)
+        return uv;
+    const float wanted = target.w / target.h;
+    Rect out = uv;
+    if (wanted > image_aspect)
+    {
+        const float keep = image_aspect / wanted;
+        out.y = uv.y + uv.h * (1.0f - keep) * 0.5f;
+        out.h = uv.h * keep;
+    }
+    else
+    {
+        const float keep = wanted / image_aspect;
+        out.x = uv.x + uv.w * (1.0f - keep) * 0.5f;
+        out.w = uv.w * keep;
+    }
+    return out;
+}
 
 float card_text_height(const CardLook &look)
 {

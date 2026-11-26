@@ -24,7 +24,7 @@ namespace hui::testing
 class ConceptFixture : public ::testing::Test
 {
   protected:
-    ConceptFixture() : context_{fonts_, catalog_, telemetry_, settings_}
+    ConceptFixture() : context_{fonts_, catalog_, telemetry_, settings_, false, {}, {}}
     {
         load("inter-regular", &regular_, &fonts_.regular);
         load("inter-semibold", &semibold_, &fonts_.semibold);

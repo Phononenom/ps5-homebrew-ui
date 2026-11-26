@@ -12,9 +12,9 @@
   "attribute": 1644167168,
   "attribute2": 0,
   "attribute3": 1048576,
-  "conceptId": "99050",
+  "conceptId": "99137",
   "contentBadgeType": 1,
-  "contentId": "UP9000-PPSA99050_00-PS5HOMEBREWUI001",
+  "contentId": "UP9000-PPSA99137_00-GARLICSAVECOMPAN",
   "contentVersion": "01.000.010",
   "downloadDataSize": 256,
   "gameIntent": {
@@ -31,7 +31,7 @@
   "localizedParameters": {
     "defaultLanguage": "en-US",
     "en-US": {
-      "titleName": "Homebrew UI Lab"
+      "titleName": "Garlic Save Companion"
     }
   },
   "masterVersion": "01.00",
@@ -42,6 +42,6 @@
   },
   "requiredSystemSoftwareVersion": "0x0000000000000000",
   "sdkVersion": "0x0000000000000000",
-  "titleId": "PPSA99050",
+  "titleId": "PPSA99137",
   "versionFileUri": ""
 }

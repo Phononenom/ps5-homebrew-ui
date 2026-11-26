@@ -16,6 +16,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <vector>
@@ -53,6 +54,9 @@ struct Telemetry
     }
 };
 
+using TextureFactory = std::function<std::uint32_t(int, int, const std::uint8_t *)>;
+using TextureDestructor = std::function<void(std::uint32_t)>;
+
 // Long-lived services a design receives when it is created.
 struct Context
 {
@@ -63,6 +67,8 @@ struct Context
     // applies the change (volumes, button swap, ...) and saves it.
     Settings &settings;
     bool settings_changed = false;
+    TextureFactory texture_factory;
+    TextureDestructor texture_destructor;
 };
 
 // One frame of a design, back to front:
@@ -124,6 +130,10 @@ class Concept
     virtual const ConceptInfo &info() const = 0;
     // The design became the active one: restart its entrance animation.
     virtual void enter()
+    {
+    }
+    // The process is about to exit; stop design-owned background work.
+    virtual void shutdown()
     {
     }
     virtual void update(const InputFrame &input, float dt, Feedback &feedback) = 0;

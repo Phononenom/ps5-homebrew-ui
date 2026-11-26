@@ -167,6 +167,74 @@ app, open **Theme Lab** and press **L2** / **R2**.
 </table>
 <!-- END:themes -->
 
+## Garlic Save Companion
+
+This checkout is configured as **Garlic Save Companion** (`PPSA99137`), a
+controller-first native front end for Garlic SaveMgr. The library is grouped
+**Titles → saves for that title**, with one landscape artwork card and save
+counts per title. Open a title to see its saves, then mount and browse files,
+export to USB, or import a USB save. **Square** switches between console and USB
+titles; **LB/RB** switches PS5 accounts. There are no cloud backup actions.
+
+**Export to USB** offers three operations using Garlic's existing endpoints:
+decrypted files for one save, encrypted raw save images for the whole title, or
+decrypted files for the whole title. The choices are labelled **Decrypt to USB**
+or **Encrypted images to USB** explicitly. PS4 encrypted exports include the key
+companion when present. Exports go to
+`/mnt/usbN/PS5/SAVEDATA/GARLIC/<title_id>` on the selected detected drive.
+Decrypted exports include `sce_sys/icon0.png` with the other save files. USB
+completion is synchronous: the app reports Garlic's destination and copied or
+failed counts rather than treating a request as proof of a complete copy, then
+refreshes the title library so the new USB save is discoverable.
+
+**Import USB save to PS5** is available on USB saves for decrypted folders and
+encrypted images. Choose an account from `/api/users`, then review a separate
+confirmation before Garlic resigns and imports the save. A fresh, unfiltered
+library check identifies a matching title and slot across every account;
+**Overwrite system save?** requires an explicit destructive confirmation, with
+Cancel focused by default. The app reports import warnings and refreshes the
+library afterward. No import occurs when the account sheet or confirmation is
+cancelled.
+
+After mounting, the app can read the same `/api/icon` artwork as Garlic's web UI.
+Title metadata prefers `/user/appmeta/<title_id>/pic0.png`, with `icon0.png` as a
+fallback, downloaded read-only through the existing FTP service. Downloads run
+on a dedicated background thread, so they do not block mounting, export, or
+import. Landscape images up to 4096 pixels per axis are decoded and downsampled
+to at most 1024 pixels on the longest side; 16:9 frames crop without stretching.
+The selected account filters system saves; **LB/RB** also moves through the
+import account picker. Only missing artwork from both sources uses the garlic
+placeholder. Garlic's payload and its API are unchanged.
+
+The launcher icon and in-app branding use the supplied
+[Garlic Saves SVG](https://garlicsaves.com/static/favicon.svg). The source is
+preserved in `assets/branding/favicon.svg`; the rendered RGBA image is used for
+`sce_sys/icon0.png`, the loading screen, the header and save placeholders.
+
+On startup, the app checks `127.0.0.1:8082`. If Garlic is not running, it sends
+`strings/payloads/garlic-savemgr.elf` to `127.0.0.1:9021`; start a compatible
+ELF loader on that port first. An already-running Garlic service is reused, so
+no duplicate payload is sent. When the API is down, the bundled ELF is sent once
+and the app waits for the service. Startup logs distinguish reuse, ELF sending,
+and API readiness. Closing this app unmounts only saves it mounted itself; it
+does not stop the Garlic service.
+
+- **D-pad:** move between titles, saves and actions; **Cross:** choose; **Circle:** back.
+- **LB/RB:** previous/next account, including the import account picker.
+- **Triangle:** refresh the library or file list.
+- **Square:** switch console/USB titles; unmount in Files.
+- **Options:** close the app.
+
+`src/concepts/garlic.cpp` is the application UI. `src/garlic/` contains its
+bounded JSON parser, loopback HTTP client, Garlic protocol models, serialized
+API worker and separate metadata worker. The bundled payload is an unmodified build of
+[earthonion/garlic-savemgr](https://git.etawen.dev/earthonion/garlic-savemgr),
+source revision `7d0dc57cf5fb5b72a31059414f0dea3ae6866b9d`, with SHA-256
+`15e4a9099e0e9b1d68644aa0ed25614bca891bad90266d643af34fcfe56cb714`.
+
+The rest of this document describes the underlying UI kit and its original
+gallery. The gallery's hardware results do not validate this application.
+
 ## Quick start
 
 You need Linux or WSL with `clang-18`, `ninja`, `make` and `python3`. The
@@ -180,7 +248,7 @@ make test              # unit tests (sanitizers on) and tooling tests
 ```
 
 To see it on a console, copy `dist/<TITLE_ID>` to `/data/homebrew/` (or
-`make deploy PS5_HOST=<address>`) and start **Homebrew UI Lab**. A release ZIP
+`make deploy PS5_HOST=<address>`) and start **Garlic Save Companion**. A release ZIP
 built by GitHub Actions can be checked with the GitHub CLI:
 `gh attestation verify <TITLE_ID>.zip -R blackbearreloaded/ps5-homebrew-ui`
 (releases built from now on, not earlier ones).

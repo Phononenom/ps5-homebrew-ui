@@ -8,7 +8,26 @@ guessing.
 ## What this is
 
 A reference for building console-grade user interfaces for PS5 homebrew with
-OpenGL 4.6, and one native app ("Homebrew UI Lab") that shows all of it.
+OpenGL 4.6, and one native app. This checkout configures that app as **Garlic
+Save Companion**: only `concepts::make_garlic` is registered. Its UI is in
+`src/concepts/garlic.cpp`; its REST client and worker are in `src/garlic/`.
+The payload at `strings/payloads/garlic-savemgr.elf` is sent to localhost 9021
+only when the Garlic API on localhost 8082 is not healthy. The README documents
+controller actions, mount ownership and USB-only operations; there are no cloud
+backup actions in this app. USB exports use only the existing payload APIs:
+decrypted single-save, encrypted whole-title and decrypted whole-title.
+The library is grouped Titles → saves for that title; Square switches between
+console and USB titles, while LB/RB switches PS5 accounts and filters system
+saves by UID. USB import uses `/api/users` and `/api/import_usb_save`, with
+account selection, duplicate detection across the full library and safe-default
+overwrite confirmation before any system write. Game photos come from `/api/icon`
+or `/user/appmeta/<title_id>/pic0.png` (with `icon0.png` as a fallback), are
+decoded and downsampled on a dedicated metadata thread, and become textures on
+the frame thread. App branding comes from the supplied SVG in
+`assets/branding/favicon.svg`; `garlic-logo.png` is the launcher icon and the
+loading, header and placeholder logo, not a replacement for per-save artwork.
+The gallery documentation describes the underlying kit, not validated behavior
+of this app.
 
 <!-- BEGIN:counts -->
 Right now: **21 designs**, **30 themes**, **99 components**.

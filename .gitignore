@@ -18,6 +18,7 @@ dist/
 *.suo
 *.log
 *.elf
+!strings/payloads/garlic-savemgr.elf
 *.self
 *.sprx
 *.prx

@@ -253,7 +253,11 @@ int main(int argc, char **argv)
     hui::save::ensure_directory(output);
     hui::save::ensure_directory(data_root);
     std::remove((data_root + "/settings.bin").c_str());
-    hui::app::Shell shell(fonts, catalog, data_root, renderer.glass_texture());
+    hui::app::Shell shell(
+        fonts, catalog, data_root, renderer.glass_texture(),
+        [&renderer](int width, int height, const std::uint8_t *rgba)
+        { return renderer.batch().create_texture(width, height, rgba); },
+        [&renderer](std::uint32_t texture) { renderer.batch().destroy_texture(texture); });
     shell.set_version("host");
 
     constexpr float kDt = 1.0f / 60.0f;

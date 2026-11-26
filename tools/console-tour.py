@@ -53,6 +53,15 @@ def stop(text):
     raise SystemExit(f"STOPPED: {text}")
 
 
+def disable_self_decryption(ftp):
+    features = ftp.sendcmd("FEAT")
+    if not any(line.strip() == "SELF" for line in features.splitlines()):
+        return
+    response = ftp.sendcmd("SELF")
+    if not response.startswith("226") or "disabled" not in response.lower():
+        raise RuntimeError(f"FTP SELF decryption was not disabled: {response}")
+
+
 def port_open(host, port):
     try:
         with socket.create_connection((host, port), timeout=5):
@@ -74,6 +83,7 @@ class Console:
         self.ftp = FTP()
         self.ftp.connect(host, port, timeout=30)
         self.ftp.login("anonymous", "ps5-homebrew-ui")
+        disable_self_decryption(self.ftp)
 
     def close(self):
         try:

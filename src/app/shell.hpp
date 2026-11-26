@@ -31,11 +31,13 @@ class Shell
 {
   public:
     Shell(const ui::Fonts &fonts, const demo::Catalog &catalog, std::string data_root,
-          std::uint32_t glass_texture);
+          std::uint32_t glass_texture, TextureFactory texture_factory = {},
+          TextureDestructor texture_destructor = {});
 
     static Settings load_settings(const std::string &data_root);
 
     void update(const InputFrame &input, float dt);
+    void shutdown();
     // Queues this frame's layers; the caller presents them.
     void compose(gfx::Renderer &renderer);
     // Records the active design's frame without rendering it. A console draws

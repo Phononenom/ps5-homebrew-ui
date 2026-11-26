@@ -124,6 +124,8 @@ float card_lift(const ComponentStyle &style, const CardLook &look, const CardSta
 float card_ring_reach(const Theme &theme);
 
 // ---- drawing ----
+// A centred, aspect-preserving crop of `uv` for a target rectangle.
+gfx::Rect cover_uv(const gfx::Rect &uv, float image_aspect, const gfx::Rect &target);
 // A card into `card`, scaled about its centre and lifted as its state says.
 void draw_card(Canvas &canvas, const ComponentStyle &style, const CardLook &look,
                const gfx::Rect &card, const CardItem &item, const CardState &state,

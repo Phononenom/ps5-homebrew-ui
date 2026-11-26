@@ -30,6 +30,11 @@ When the app finds a tour request it has not honoured yet, it:
    the evidence with it;
 6. asks the system to close it (`sceSystemServiceLoadExec("exit", NULL)`).
 
+Garlic's console tour is read-only. It visits title and save lists, USB export
+choices, drive discovery and import account selection, but cancels before any
+USB export or import. Host fixtures may simulate those writes. Test real USB
+operations only with an explicitly selected save or owner-performed steps.
+
 `dev/app.log` is the app's log. Put the request in place **before** launching:
 the tool does not write into the install folder of a running title.
 
@@ -57,7 +62,9 @@ make                                            # build dist/<TITLE_ID>
 PS5_HOST=<console address> tools/console-tour.py results/run-1
 ```
 
-It uploads the build (every file read back and compared by hash), writes the
+It uploads the build (every file read back and compared by hash). When the
+FTP server advertises SELF decryption, the tool disables it on each connection
+so signed executables are compared as stored, not as decrypted ELFs. It writes the
 trigger, waits until the console has registered the title, records the kernel
 log, launches the title, waits for the app's own exit, downloads the report,
 the pictures and `app.log`, and checks the log for errors. It never kills the

@@ -371,6 +371,12 @@ std::uint32_t GlBatch::create_texture(int width, int height, const std::uint8_t 
     return texture;
 }
 
+void GlBatch::destroy_texture(std::uint32_t texture)
+{
+    if (texture != 0 && !is_font_handle(texture))
+        glDeleteTextures(1, &texture);
+}
+
 void GlBatch::draw(const DrawList &list, const Viewport &viewport, int surface_width,
                    int surface_height)
 {

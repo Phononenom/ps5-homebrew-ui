@@ -33,7 +33,7 @@ TEST_F(EveryConcept, DescribesItself)
         EXPECT_GE(info.techniques.size(), 3u) << info.id;
         EXPECT_LT(info.sounds, hui::audio::SoundSet::count) << info.id;
     }
-    EXPECT_GE(ids.size(), 2u);
+    EXPECT_FALSE(ids.empty());
 }
 
 // The tour is what the snapshots and the console validation run: every design
