@@ -10,6 +10,7 @@
 
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -78,7 +79,16 @@ struct Result
 class Worker
 {
   public:
-    Worker();
+    struct Hooks
+    {
+        std::function<bool(Status *)> healthy;
+        std::function<bool(const std::vector<std::uint8_t> &, std::string *)> deliver;
+        std::function<bool(const std::string &, std::string *)> read;
+        std::function<std::int64_t()> now;
+        std::function<void(std::int64_t)> sleep;
+    };
+
+    explicit Worker(Hooks hooks = {});
     ~Worker();
     Worker(const Worker &) = delete;
     Worker &operator=(const Worker &) = delete;
@@ -103,6 +113,7 @@ class Worker
     bool healthy(Status *status);
     void unmount_if_needed();
 
+    Hooks hooks_;
     std::deque<Job> jobs_;
     std::deque<Job> metadata_jobs_;
     std::deque<Result> results_;

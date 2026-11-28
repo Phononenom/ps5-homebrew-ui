@@ -15,9 +15,11 @@
 
 #include "../../third_party/stb/stb_image.h"
 
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace garlic::tests
@@ -191,7 +193,7 @@ TEST(Protocol, ParsesUsersAndImportResults)
     ASSERT_EQ(users.size(), 1U);
     EXPECT_EQ(users[0].id, "10000000");
     EXPECT_EQ(users[0].name, "Player");
-    EXPECT_FALSE(parse_users(R"({"users":[{"id":"bad","name":"Player"}]})", &users, &error));
+    EXPECT_FALSE(parse_users(R"({"users":[{"id":"not-hex","name":"Player"}]})", &users, &error));
 
     ImportResult result;
     ASSERT_TRUE(parse_import(
@@ -240,6 +242,94 @@ TEST(Metadata, ArtworkJobsAreBackgroundWork)
     EXPECT_TRUE(worker.start({JobType::load_icon, -1, "PPSA21564"}));
     EXPECT_FALSE(worker.busy());
     worker.stop();
+}
+
+Worker::Hooks payload_hooks(int &sends, std::vector<std::uint8_t> &sent_bytes, std::int64_t &now,
+                            int failures_before_success)
+{
+    Worker::Hooks hooks;
+    hooks.healthy = [](Status *) { return false; };
+    hooks.read = [](const std::string &path, std::string *data)
+    {
+        EXPECT_EQ(path, "/app0/strings/payloads/garlic-savemgr.elf");
+        return hui::save::read_file(HUI_SOURCE_DIR "/strings/payloads/garlic-savemgr.elf", data);
+    };
+    hooks.deliver =
+        [&, failures_before_success](const std::vector<std::uint8_t> &data, std::string *error)
+    {
+        ++sends;
+        now += 3'000'000;
+        sent_bytes = data;
+        *error = "loader unavailable";
+        return failures_before_success >= 0 && sends > failures_before_success;
+    };
+    hooks.now = [&] { return now; };
+    hooks.sleep = [&](std::int64_t duration) { now += duration; };
+    return hooks;
+}
+
+Result run_startup(const Worker::Hooks &hooks)
+{
+    Worker worker(hooks);
+    EXPECT_TRUE(worker.start({JobType::startup}));
+    Result result;
+    bool received = false;
+    for (int attempt = 0; attempt < 2000 && !received; ++attempt)
+    {
+        received = worker.try_result(&result);
+        if (!received)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    worker.stop();
+    EXPECT_TRUE(received);
+    return result;
+}
+
+TEST(Startup, RetriesUntilPayloadIsAcceptedOnce)
+{
+    int sends = 0;
+    std::int64_t now = 0;
+    std::vector<std::uint8_t> sent_bytes;
+    const Result result = run_startup(payload_hooks(sends, sent_bytes, now, 2));
+    EXPECT_EQ(sends, 3);
+    EXPECT_EQ(sent_bytes.size(), 1723656U);
+    EXPECT_EQ(result.error, "Garlic was sent, but its API did not start on port 8082");
+    std::string error;
+    EXPECT_TRUE(valid_elf(sent_bytes, &error));
+}
+
+TEST(Startup, BoundsLoaderFailures)
+{
+    int sends = 0;
+    std::int64_t now = 0;
+    std::vector<std::uint8_t> sent_bytes;
+    const Result result = run_startup(payload_hooks(sends, sent_bytes, now, -1));
+    EXPECT_EQ(sends, 7);
+    EXPECT_EQ(result.error, "loader unavailable");
+    EXPECT_LE(now, 23'000'000);
+}
+
+TEST(Startup, DoesNotDuplicateHealthyService)
+{
+    int sends = 0;
+    std::int64_t now = 0;
+    std::vector<std::uint8_t> sent_bytes;
+    Worker::Hooks hooks = payload_hooks(sends, sent_bytes, now, 1);
+    hooks.healthy = [](Status *) { return true; };
+    const Result result = run_startup(hooks);
+    EXPECT_EQ(sends, 0);
+    EXPECT_EQ(result.error, "Network access is unavailable in host previews");
+
+    hooks = payload_hooks(sends, sent_bytes, now, 1);
+    int health_checks = 0;
+    hooks.healthy = [&](Status *)
+    {
+        ++health_checks;
+        return health_checks > 2;
+    };
+    const Result became_healthy = run_startup(hooks);
+    EXPECT_EQ(sends, 1);
+    EXPECT_EQ(became_healthy.error, "Network access is unavailable in host previews");
 }
 
 TEST(Image, DecodesPngForTextures)

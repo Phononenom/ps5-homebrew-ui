@@ -42,7 +42,7 @@ bool successful(const HttpResponse &response, std::string *error)
 
 } // namespace
 
-Worker::Worker()
+Worker::Worker(Hooks hooks) : hooks_(std::move(hooks))
 {
     joined_ = true;
     metadata_joined_ = true;
@@ -235,33 +235,68 @@ Result Worker::execute(const Job &job)
 
 Result Worker::startup()
 {
+    const auto now = [this] { return hooks_.now ? hooks_.now() : hui::sys::monotonic_us(); };
+    const auto pause = [this](std::int64_t duration)
+    {
+        if (hooks_.sleep)
+            hooks_.sleep(duration);
+        else
+            hui::sys::sleep_us(static_cast<uint32_t>(duration));
+    };
     bool started = false;
     Status status;
     if (!healthy(&status))
     {
         hui::sys::log("[Garlic] startup: API unavailable; reading bundled ELF");
         std::string data;
-        if (!hui::save::read_file(kPayloadPath, &data))
+        const bool read = hooks_.read ? hooks_.read(kPayloadPath, &data)
+                                      : hui::save::read_file(kPayloadPath, &data);
+        if (!read)
             return failure(JobType::startup, "Could not read the bundled Garlic payload");
         std::vector<std::uint8_t> bytes(data.begin(), data.end());
         std::string error;
-        hui::sys::log("[Garlic] startup: sending %zu bytes to 127.0.0.1:9021", bytes.size());
-        if (!send_payload(bytes, &error))
-        {
-            hui::sys::log("[Garlic] startup: payload send failed: %s", error.c_str());
+        if (!valid_elf(bytes, &error))
             return failure(JobType::startup, error);
-        }
-        started = true;
-        hui::sys::log("[Garlic] startup: payload sent; waiting for API on 8082");
-        const std::int64_t deadline = hui::sys::monotonic_us() + 20'000'000;
-        while (!healthy(&status))
+        hui::sys::log("[Garlic] startup: sending %zu bytes to 127.0.0.1:9021", bytes.size());
+        const std::int64_t deadline = now() + 20'000'000;
+        std::string last_error;
+        while (!started && !healthy(&status) && now() < deadline)
         {
-            if (hui::sys::monotonic_us() >= deadline)
-                return failure(JobType::startup,
-                               "Garlic was sent, but its API did not start on port 8082");
-            hui::sys::sleep_us(250'000);
+            const bool delivered =
+                hooks_.deliver ? hooks_.deliver(bytes, &error) : send_payload(bytes, &error);
+            if (delivered)
+            {
+                started = true;
+                break;
+            }
+            last_error = error;
+            hui::sys::log("[Garlic] startup: payload send failed: %s; waiting for loader",
+                          error.c_str());
+            pause(250'000);
         }
-        hui::sys::log("[Garlic] startup: API is healthy");
+        if (!started && !healthy(&status))
+        {
+            if (last_error.empty())
+                last_error = "Could not deliver the Garlic payload to 127.0.0.1:9021";
+            return failure(JobType::startup, last_error);
+        }
+        if (started)
+        {
+            hui::sys::log("[Garlic] startup: payload sent; waiting for API on 8082");
+            const std::int64_t api_deadline = now() + 20'000'000;
+            while (!healthy(&status))
+            {
+                if (now() >= api_deadline)
+                    return failure(JobType::startup,
+                                   "Garlic was sent, but its API did not start on port 8082");
+                pause(250'000);
+            }
+            hui::sys::log("[Garlic] startup: API is healthy");
+        }
+        else
+        {
+            hui::sys::log("[Garlic] startup: API became healthy; no duplicate payload sent");
+        }
     }
     else
     {
@@ -421,6 +456,8 @@ Result Worker::import_save(const Job &job)
 
 bool Worker::healthy(Status *status)
 {
+    if (hooks_.healthy)
+        return hooks_.healthy(status);
     HttpResponse response = get("/api/status");
     if (!successful(response, &response.error))
         return false;

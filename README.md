@@ -213,11 +213,12 @@ preserved in `assets/branding/favicon.svg`; the rendered RGBA image is used for
 
 On startup, the app checks `127.0.0.1:8082`. If Garlic is not running, it sends
 `strings/payloads/garlic-savemgr.elf` to `127.0.0.1:9021`; start a compatible
-ELF loader on that port first. An already-running Garlic service is reused, so
-no duplicate payload is sent. When the API is down, the bundled ELF is sent once
-and the app waits for the service. Startup logs distinguish reuse, ELF sending,
-and API readiness. Closing this app unmounts only saves it mounted itself; it
-does not stop the Garlic service.
+ELF loader on that port first. Loader delivery has bounded retries while the API
+is unavailable, and stops after one accepted payload or if Garlic becomes
+healthy independently. An already-running Garlic service is reused, so no
+duplicate payload is sent. Startup logs distinguish reuse, delivery attempts and
+API readiness. Closing this app unmounts only saves it mounted itself; it does
+not stop the Garlic service.
 
 - **D-pad:** move between titles, saves and actions; **Cross:** choose; **Circle:** back.
 - **LB/RB:** previous/next account, including the import account picker.

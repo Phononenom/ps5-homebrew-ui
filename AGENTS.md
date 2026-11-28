@@ -12,7 +12,8 @@ OpenGL 4.6, and one native app. This checkout configures that app as **Garlic
 Save Companion**: only `concepts::make_garlic` is registered. Its UI is in
 `src/concepts/garlic.cpp`; its REST client and worker are in `src/garlic/`.
 The payload at `strings/payloads/garlic-savemgr.elf` is sent to localhost 9021
-only when the Garlic API on localhost 8082 is not healthy. The README documents
+only when the Garlic API on localhost 8082 is not healthy, with bounded loader
+retries and no duplicate delivery. The README documents
 controller actions, mount ownership and USB-only operations; there are no cloud
 backup actions in this app. USB exports use only the existing payload APIs:
 decrypted single-save, encrypted whole-title and decrypted whole-title.
